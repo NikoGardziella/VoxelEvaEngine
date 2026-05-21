@@ -1,0 +1,101 @@
+# Build folders
+build/
+out/
+bin/
+obj/
+.vs/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+install_manifest.txt
+compile_commands.json
+
+# Visual Studio generated files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vcxproj.FileListAbsolute.txt
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.ipch
+*.tlog
+*.lastbuildstate
+*.idb
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.exe
+*.obj
+*.pch
+*.res
+*.log
+*.cache
+*.manifest
+*.recipe
+*.iobj
+*.ipdb
+
+# Visual Studio folders
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+x64/
+Win32/
+
+# CMake FetchContent dependencies
+_deps/
+build/_deps/
+build*/_deps/
+
+# Ninja
+.ninja_deps
+.ninja_log
+*.ninja
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Generated shader binaries
+*.spv
+
+# Runtime logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# OS files
+.DS_Store
+
+# Keep source/assets/shaders tracked
+!Engine/
+!Game/
+!Editor/
+!Server/
+!assets/
+!shaders/
+!Scripts/
+!CMakeLists.txt
