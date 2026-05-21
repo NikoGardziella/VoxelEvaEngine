@@ -16,7 +16,7 @@ namespace Engine
         unsigned int Height = 720;
         bool VSync = true;
     };
-
+    class GraphicsContext;
     class Window
     {
     public:
@@ -37,6 +37,7 @@ namespace Engine
         virtual bool ShouldClose() const = 0;
 
         virtual GLFWwindow* GetNativeWindow() const = 0;
+        virtual GraphicsContext* GetGraphicsContext() const = 0;
 
         static Window* Create(const WindowSpecification& specification = WindowSpecification());
     };

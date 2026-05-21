@@ -10,8 +10,16 @@ namespace Engine
     class Input
     {
     public:
+        static void Update();
+
         static bool IsKeyPressed(KeyCode keyCode);
+        static bool IsKeyDown(KeyCode keyCode);
+        static bool IsKeyReleased(KeyCode keyCode);
+
         static bool IsMouseButtonPressed(MouseCode button);
+        static bool IsMouseButtonDown(MouseCode button);
+        static bool IsMouseButtonReleased(MouseCode button);
+
         static std::pair<float, float> GetMousePosition();
 
         static float GetMouseX();

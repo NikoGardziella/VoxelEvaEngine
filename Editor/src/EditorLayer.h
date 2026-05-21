@@ -1,15 +1,28 @@
 #pragma once
 
 #include "Engine/Core/Layer.h"
+#include <Editor/EditorImGuiLayer.h>
 
-class EditorLayer : public Engine::Layer
-{
-public:
-    EditorLayer();
-    ~EditorLayer() override;
+namespace Editor {
 
-    void OnAttach() override;
-    void OnDetach() override;
-    void OnUpdate(Engine::Timestep ts) override;
-    void OnEvent(Engine::Event& event) override;
-};
+
+    class EditorLayer : public Engine::Layer
+    {
+    public:
+        EditorLayer();
+        ~EditorLayer() override;
+
+        void OnAttach() override;
+        void OnDetach() override;
+        void OnUpdate(Engine::Timestep ts) override;
+        void OnEvent(Engine::Event& event) override;
+
+
+
+    private: 
+
+        EditorImGuiLayer m_imguiLayer;
+    };
+
+
+}

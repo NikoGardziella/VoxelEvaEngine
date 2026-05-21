@@ -11,43 +11,65 @@
 #include "Engine/Core/Input.h"
 #include "Engine/Core/KeyCodes.h"
 #include "Engine/Core/MouseCodes.h"
+#include "Engine/Core/EntryPoint.h"
+#include <Engine/Renderer/GraphicsContext.h>
+#include <Engine/Platform/Vulkan/VulkanContext.h>
+#include "Engine/Core/Window.h"
 
-EditorLayer::EditorLayer()
-    : Engine::Layer("EditorLayer")
-{
-}
+namespace Editor {
 
-EditorLayer::~EditorLayer()
-{
-}
 
-void EditorLayer::OnAttach()
-{
-    APP_INFO("EditorLayer attached");
-}
 
-void EditorLayer::OnDetach()
-{
-    APP_INFO("EditorLayer detached");
-}
-
-void EditorLayer::OnUpdate(Engine::Timestep ts)
-{
-    (void)ts;
-
-    if (Engine::Input::IsKeyPressed(Engine::Key::Space))
+    EditorLayer::EditorLayer()
+        : Engine::Layer("EditorLayer")
     {
-        APP_INFO("Space pressed");
     }
 
-    if (Engine::Input::IsMouseButtonPressed(Engine::Mouse::ButtonLeft))
+    EditorLayer::~EditorLayer()
     {
-        auto [x, y] = Engine::Input::GetMousePosition();
-        APP_INFO("Left mouse at {}, {}", x, y);
     }
-}
 
-void EditorLayer::OnEvent(Engine::Event& event)
-{
-    APP_TRACE("EditorLayer event: {}", event.ToString());
+    void EditorLayer::OnAttach()
+    {
+
+        Engine::Window& window = Engine::Application::Get().GetWindow();
+        Engine::GraphicsContext* context = window.GetGraphicsContext();
+
+        Engine::VulkanContext* vulkanContext = static_cast<Engine::VulkanContext*>(context);
+
+        m_imguiLayer.OnAttach(vulkanContext);
+        APP_INFO("EditorLayer attached");
+    }
+
+    void EditorLayer::OnDetach()
+    {
+        APP_INFO("EditorLayer detached");
+    }
+
+    void EditorLayer::OnUpdate(Engine::Timestep ts)
+    {
+        (void)ts;
+
+        if (Engine::Input::IsKeyDown(Engine::Key::Space))
+        {
+            APP_INFO("Space pressed this frame");
+        }
+
+        if (Engine::Input::IsMouseButtonDown(Engine::Mouse::ButtonLeft))
+        {
+            auto [x, y] = Engine::Input::GetMousePosition();
+            APP_INFO("Left mouse clicked at {}, {}", x, y);
+        }
+
+        if (Engine::Input::IsMouseButtonReleased(Engine::Mouse::ButtonLeft))
+        {
+            APP_INFO("Left mouse released");
+        }
+    }
+
+    void EditorLayer::OnEvent(Engine::Event& event)
+    {
+        //APP_TRACE("EditorLayer event: {}", event.ToString());
+    }
+
 }

@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Engine/Core/Window.h"
+#include <memory>
 
 namespace Engine
 {
+    class GraphicsContext;
     class WindowsWindow final : public Window
     {
+
     public:
         explicit WindowsWindow(const WindowSpecification& specification);
         ~WindowsWindow() override;
@@ -25,14 +28,15 @@ namespace Engine
 
         bool ShouldClose() const override;
 
-        GLFWwindow* GetNativeWindow() const override { return m_Window; }
-
+        GLFWwindow* GetNativeWindow() const override { return m_window; }
+        GraphicsContext* GetGraphicsContext() const override { return m_context.get(); }
     private:
         void Init(const WindowSpecification& specification);
         void Shutdown();
 
     private:
-        GLFWwindow* m_Window = nullptr;
+        GLFWwindow* m_window = nullptr;
+        std::unique_ptr<GraphicsContext> m_context;
 
         struct WindowData
         {
@@ -40,7 +44,7 @@ namespace Engine
             unsigned int Width = 0;
             unsigned int Height = 0;
             bool VSync = true;
-
+            GraphicsContext* Context = nullptr;
             EventCallbackFn EventCallback;
         };
 

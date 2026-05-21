@@ -1,22 +1,26 @@
 #include "EditorLayer.h"
 
 #include "Engine/Core/Application.h"
-#include "Engine/Core/EntryPoint.h"
 
-class EditorApplication : public Engine::Application
-{
-public:
-    EditorApplication()
+namespace Editor {
+
+
+    class EditorApplication : public Engine::Application
     {
-        PushLayer(new EditorLayer());
-    }
+    public:
+        EditorApplication()
+        {
+        
+            PushLayer(new EditorLayer());
+        }
 
-    ~EditorApplication()
-    {
-    }
-};
+        ~EditorApplication()
+        {
+        }
+    };
 
-Engine::Application* CreateApplication()
-{
-    return new EditorApplication();
 }
+    Engine::Application* CreateApplication()
+    {
+        return new Editor::EditorApplication();
+    }

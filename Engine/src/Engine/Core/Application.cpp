@@ -5,18 +5,20 @@
 #include "Engine/Core/Window.h"
 #include <GLFW/glfw3.h>
 #include "Assert.h"
+#include "Engine/Core/Input.h"
+
 
 namespace Engine
 {
-    Application* Application::s_Instance = nullptr;
+    Application* Application::s_instance = nullptr;
 
     Application::Application()
     {
         ENGINE_INFO("Application created");
 
 
-        VE_CORE_ASSERT(!s_Instance);
-        s_Instance = this;
+        VE_CORE_ASSERT(!s_instance);
+        s_instance = this;
 
         WindowSpecification specification;
         specification.Title = "VoxelEvaEngine Editor";
@@ -24,9 +26,9 @@ namespace Engine
         specification.Height = 720;
         specification.VSync = true;
 
-        m_Window.reset(Window::Create(specification));
+        m_window.reset(Window::Create(specification));
 
-        m_Window->SetEventCallback(
+        m_window->SetEventCallback(
             [this](Event& event)
             {
                 OnEvent(event);
@@ -42,18 +44,20 @@ namespace Engine
     {
         ENGINE_INFO("Application running");
 
-        while (m_Running && !m_Window->ShouldClose())
+        while (m_running && !m_window->ShouldClose())
         {
-            float time = static_cast<float>(glfwGetTime());
-            Timestep timestep = time - m_LastFrameTime;
-            m_LastFrameTime = time;
+            Input::Update();
 
-            for (Layer* layer : m_LayerStack)
+            float time = static_cast<float>(glfwGetTime());
+            Timestep timestep = time - m_lastFrameTime;
+            m_lastFrameTime = time;
+
+            for (Layer* layer : m_layerStack)
             {
                 layer->OnUpdate(timestep);
             }
 
-            m_Window->OnUpdate();
+            m_window->OnUpdate();
         }
     }
 
@@ -73,7 +77,7 @@ namespace Engine
                 return OnWindowResize(e);
             });
 
-        for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
+        for (auto it = m_layerStack.rbegin(); it != m_layerStack.rend(); ++it)
         {
             if (event.Handled)
                 break;
@@ -84,19 +88,19 @@ namespace Engine
 
     void Application::PushLayer(Layer* layer)
     {
-        m_LayerStack.PushLayer(layer);
+        m_layerStack.PushLayer(layer);
     }
 
     void Application::PushOverlay(Layer* overlay)
     {
-        m_LayerStack.PushOverlay(overlay);
+        m_layerStack.PushOverlay(overlay);
     }
 
     bool Application::OnWindowClose(WindowCloseEvent& event)
     {
         (void)event;
 
-        m_Running = false;
+        m_running = false;
         return true;
     }
 

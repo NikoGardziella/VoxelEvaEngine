@@ -5,31 +5,37 @@
 
 #ifdef VE_DEBUG
 
-#define VE_INTERNAL_ASSERT_IMPL(type, check, msg, ...) \
+#define VE_INTERNAL_ASSERT_NO_MSG(check) \
+    do \
+    { \
+        if (!(check)) \
         { \
-            if (!(check)) \
-            { \
-                ENGINE_ERROR(msg, __VA_ARGS__); \
-                VE_DEBUGBREAK(); \
-            } \
-        }
+            ENGINE_ERROR("Assertion '{0}' failed at {1}:{2}", VE_STRINGIFY_MACRO(check), __FILE__, __LINE__); \
+            VE_DEBUGBREAK(); \
+        } \
+    } while (false)
 
-#define VE_INTERNAL_ASSERT_WITH_MSG(type, check, ...) \
-        VE_INTERNAL_ASSERT_IMPL(type, check, "Assertion failed: {0}", __VA_ARGS__)
+#define VE_INTERNAL_ASSERT_WITH_MSG(check, ...) \
+    do \
+    { \
+        if (!(check)) \
+        { \
+            ENGINE_ERROR(__VA_ARGS__); \
+            VE_DEBUGBREAK(); \
+        } \
+    } while (false)
 
-#define VE_INTERNAL_ASSERT_NO_MSG(type, check) \
-        VE_INTERNAL_ASSERT_IMPL(type, check, "Assertion '{0}' failed at {1}:{2}", \
-            VE_STRINGIFY_MACRO(check), __FILE__, __LINE__)
+#define VE_INTERNAL_ASSERT_GET_MACRO(_1, _2, _3, NAME, ...) NAME
 
-#define VE_ASSERT(check, ...) \
-        VE_EXPAND_MACRO(VE_INTERNAL_ASSERT_NO_MSG(_, check))
+#define ENGINE_ASSERT(...) \
+    VE_EXPAND_MACRO(VE_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__, VE_INTERNAL_ASSERT_WITH_MSG, VE_INTERNAL_ASSERT_WITH_MSG, VE_INTERNAL_ASSERT_NO_MSG)(__VA_ARGS__))
 
-#define VE_CORE_ASSERT(check, ...) \
-        VE_EXPAND_MACRO(VE_INTERNAL_ASSERT_NO_MSG(_, check))
+#define VE_CORE_ASSERT(...) \
+    VE_EXPAND_MACRO(VE_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__, VE_INTERNAL_ASSERT_WITH_MSG, VE_INTERNAL_ASSERT_WITH_MSG, VE_INTERNAL_ASSERT_NO_MSG)(__VA_ARGS__))
 
 #else
 
-#define VE_ASSERT(check, ...)
-#define VE_CORE_ASSERT(check, ...)
+#define VE_ASSERT(...)
+#define VE_CORE_ASSERT(...)
 
 #endif
