@@ -17,7 +17,7 @@ namespace Engine {
             case VK_SHADER_STAGE_FRAGMENT_BIT:  return ".frag";
             case VK_SHADER_STAGE_COMPUTE_BIT:  return ".comp";
             default:
-                ENGINE_ASSERT(false, "Unsupported shader stage!");
+                EE_ASSERT(false, "Unsupported shader stage!");
                 return "";
             }
         }
@@ -84,7 +84,7 @@ namespace Engine {
                 kind = shaderc_glsl_compute_shader;
                 break;
             default:
-                ENGINE_ASSERT("unkown shader kind");
+                EE_ASSERT("unkown shader kind");
             }
 
             std::filesystem::path shaderFilePath = std::filesystem::path(originalFilePath).filename();
@@ -244,7 +244,7 @@ namespace Engine {
         if (type == "compute" || type == "comp")
             return VK_SHADER_STAGE_COMPUTE_BIT;
 
-        ENGINE_ASSERT("unkown shader type");
+        EE_ASSERT("unkown shader type");
     }
 
 }

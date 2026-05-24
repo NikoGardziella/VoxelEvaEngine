@@ -15,6 +15,8 @@ namespace Engine
 
         static void PopulateCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
+        VkDebugUtilsMessengerEXT GetDebugMessenger() { return  m_debugMessenger;        }
+
     private:
         void CreateDebugMessenger();
 

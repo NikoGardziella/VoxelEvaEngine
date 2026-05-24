@@ -6,7 +6,8 @@
 #include <GLFW/glfw3.h>
 #include "Assert.h"
 #include "Engine/Core/Input.h"
-
+#include "Engine/Platform/Vulkan/VulkanContext.h"
+#include "Engine/Platform/Vulkan/VulkanRenderer.h"
 
 namespace Engine
 {
@@ -17,7 +18,7 @@ namespace Engine
         ENGINE_INFO("Application created");
 
 
-        VE_CORE_ASSERT(!s_instance);
+        EE_CORE_ASSERT(!s_instance);
         s_instance = this;
 
         WindowSpecification specification;
@@ -33,6 +34,16 @@ namespace Engine
             {
                 OnEvent(event);
             });
+
+        GraphicsContext* graphicsContext = m_window->GetGraphicsContext();
+        VulkanContext* vulkanContext = static_cast<VulkanContext*>(graphicsContext);
+
+        m_renderer = std::make_unique<VulkanRenderer>(vulkanContext, m_window->GetNativeWindow());
+        m_renderer->Init();
+
+
+       // m_renderer->GetViewportRenderTarget().CreateImGuiDescriptor();
+
     }
 
     Application::~Application()
@@ -46,18 +57,39 @@ namespace Engine
 
         while (m_running && !m_window->ShouldClose())
         {
-            Input::Update();
-
             float time = static_cast<float>(glfwGetTime());
             Timestep timestep = time - m_lastFrameTime;
             m_lastFrameTime = time;
 
-            for (Layer* layer : m_layerStack)
-            {
-                layer->OnUpdate(timestep);
-            }
-
             m_window->OnUpdate();
+            Input::Update();
+
+            m_renderer->ApplyPendingViewportResize();
+
+            if (m_renderer->BeginFrame())
+            {
+                m_renderer->RenderViewport();
+
+                m_renderer->BeginRenderPass();
+
+                for (Layer* layer : m_layerStack)
+                {
+                    layer->OnUpdate(timestep);
+                }
+
+                BeginImGui();
+
+                for (Layer* layer : m_layerStack)
+                {
+                    layer->OnImGuiRender();
+                }
+
+                EndImGui(m_renderer->GetCurrentCommandBuffer());
+
+                m_renderer->EndRenderPass();
+                m_renderer->EndFrame();
+                m_renderer->Present();
+            }
         }
     }
 
@@ -94,6 +126,12 @@ namespace Engine
     void Application::PushOverlay(Layer* overlay)
     {
         m_layerStack.PushOverlay(overlay);
+    }
+
+    VulkanContext* Application::GetVulkanContext() const
+    {
+        GraphicsContext* graphicsContext = m_window->GetGraphicsContext();
+        return static_cast<VulkanContext*>(graphicsContext);
     }
 
     bool Application::OnWindowClose(WindowCloseEvent& event)

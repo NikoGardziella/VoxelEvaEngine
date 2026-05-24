@@ -1,24 +1,29 @@
 #type vertex
 #version 450
 
-vec2 positions[3] = vec2[]
-(
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
-);
+layout(push_constant) uniform CameraPushConstants
+{
+    mat4 uMVP;
+} pc;
+
+layout(location = 0) in vec3 aPosition;
+layout(location = 1) in vec3 aColor;
+
+layout(location = 0) out vec3 vColor;
 
 void main()
 {
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+    gl_Position = pc.uMVP * vec4(aPosition, 1.0);
+    vColor = aColor;
 }
 
 #type fragment
 #version 450
 
-layout(location = 0) out vec4 o_color;
+layout(location = 0) in vec3 vColor;
+layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    o_color = vec4(1.0, 1.0, 0.0, 1.0);
+    outColor = vec4(vColor, 1.0);
 }

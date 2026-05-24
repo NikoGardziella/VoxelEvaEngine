@@ -4,6 +4,7 @@
 #include "Engine/Core/MouseCodes.h"
 
 #include <utility>
+#include <glm/ext/vector_float2.hpp>
 
 namespace Engine
 {
@@ -21,6 +22,7 @@ namespace Engine
         static bool IsMouseButtonReleased(MouseCode button);
 
         static std::pair<float, float> GetMousePosition();
+        static glm::vec2 GetMouseGlmPosition();
 
         static float GetMouseX();
         static float GetMouseY();

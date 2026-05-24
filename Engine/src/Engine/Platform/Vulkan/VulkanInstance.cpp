@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <Engine/Core/Log.h>
 
 namespace Engine
 {
@@ -17,22 +18,20 @@ namespace Engine
     {
         CreateInstance();
 
-        if (s_enableValidationLayers)
-        {
-            m_debugMessenger = std::make_unique<VulkanDebugMessenger>(m_instance);
-        }
+        ENGINE_INFO("Validation layers enabled: {}", s_enableValidationLayers ? "true" : "false");
+
     }
 
     VulkanInstance::~VulkanInstance()
     {
-        m_debugMessenger.reset();
         if (m_instance != VK_NULL_HANDLE)
         {
             vkDestroyInstance(m_instance, nullptr);
             m_instance = VK_NULL_HANDLE;
         }
-    }
 
+
+    }
     void VulkanInstance::CreateInstance()
     {
         VkApplicationInfo appInfo{};
@@ -43,27 +42,15 @@ namespace Engine
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_3;
 
-        uint32_t glfwExtensionCount = 0;
         std::vector<const char*> instanceExtensions = GetRequiredExtensions();
 
-        
-
-       
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
         createInfo.ppEnabledExtensionNames = instanceExtensions.data();
-        createInfo.enabledLayerCount = 0;
-        createInfo.ppEnabledLayerNames = nullptr;
-
-        if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create Vulkan instance");
-        }
-
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
         if (s_enableValidationLayers)
         {
@@ -83,6 +70,11 @@ namespace Engine
             createInfo.enabledLayerCount = 0;
             createInfo.ppEnabledLayerNames = nullptr;
             createInfo.pNext = nullptr;
+        }
+
+        if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create Vulkan instance");
         }
     }
 
@@ -130,4 +122,6 @@ namespace Engine
 
         return true;
     }
+
+   
 }

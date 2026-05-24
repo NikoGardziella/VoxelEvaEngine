@@ -8,6 +8,7 @@
 #include <backends/imgui_impl_vulkan.h>
 
 #include <GLFW/glfw3.h>
+#include <Engine/Core/Assert.h>
 
 namespace Editor
 {
@@ -19,9 +20,10 @@ namespace Editor
         ENGINE_ERROR("ImGui Vulkan error: {0}", static_cast<int32_t>(result));
     }
 
-    void EditorImGuiLayer::OnAttach(Engine::VulkanContext* context)
+    void EditorImGuiLayer::OnAttach(Engine::VulkanContext* context, Engine::VulkanRenderer* renderer)
     {
         m_context = context;
+        m_renderer = renderer;
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -29,7 +31,7 @@ namespace Editor
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
         ImGui::StyleColorsDark();
 
@@ -38,20 +40,40 @@ namespace Editor
         ImGui_ImplGlfw_InitForVulkan(m_context->GetNativeWindow(), true);
 
         ImGui_ImplVulkan_InitInfo initInfo{};
+        initInfo.ApiVersion = VK_API_VERSION_1_3;
         initInfo.Instance = m_context->GetInstanceHandle();
         initInfo.PhysicalDevice = m_context->GetPhysicalDeviceHandle();
         initInfo.Device = m_context->GetDeviceHandle();
         initInfo.QueueFamily = m_context->GetGraphicsQueueFamily();
         initInfo.Queue = m_context->GetGraphicsQueue();
-        initInfo.PipelineCache = VK_NULL_HANDLE;
         initInfo.DescriptorPool = m_descriptorPool;
+        initInfo.DescriptorPoolSize = 0;
         initInfo.MinImageCount = 2;
-        initInfo.ImageCount = m_context->GetImageCount();
+        initInfo.ImageCount = m_renderer->GetImageCount();
+        initInfo.PipelineCache = VK_NULL_HANDLE;
+
+        initInfo.PipelineInfoMain.RenderPass = m_renderer->GetRenderPass();
+        initInfo.PipelineInfoMain.Subpass = 0;
+        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        initInfo.PipelineInfoForViewports.RenderPass = m_renderer->GetRenderPass();
+        initInfo.PipelineInfoForViewports.Subpass = 0;
+        initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        initInfo.UseDynamicRendering = false;
         initInfo.Allocator = nullptr;
         initInfo.CheckVkResultFn = CheckVkResult;
+        initInfo.MinAllocationSize = 1024 * 1024;
+
+        EE_CORE_ASSERT(initInfo.PipelineInfoMain.RenderPass != VK_NULL_HANDLE, "ImGui render pass is null");
+        EE_CORE_ASSERT(initInfo.ImageCount >= initInfo.MinImageCount, "Invalid ImGui image count");
 
         ImGui_ImplVulkan_Init(&initInfo);
+        if (renderer)
+        {
+            m_renderer->GetViewportRenderTarget().CreateImGuiDescriptor();
 
+        }
         ENGINE_INFO("Editor ImGui layer attached");
     }
 
@@ -81,19 +103,15 @@ namespace Editor
         ImGui::NewFrame();
     }
 
-    void EditorImGuiLayer::End()
+    void EditorImGuiLayer::End(VkCommandBuffer commandBuffer)
     {
         ImGui::Render();
 
-        VkCommandBuffer commandBuffer = m_context->GetCurrentCommandBuffer();
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+        ImDrawData* drawData = ImGui::GetDrawData();
 
-        ImGuiIO& io = ImGui::GetIO();
-
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        if (drawData && drawData->CmdListsCount > 0)
         {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
+            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
         }
     }
 

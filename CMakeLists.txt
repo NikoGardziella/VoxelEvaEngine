@@ -19,6 +19,8 @@ set(VE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin")
 
 include(FetchContent)
 
+find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+
 FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git GIT_TAG 3.4)
 FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.15.3)
 FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git GIT_TAG 1.0.1)
@@ -27,12 +29,13 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG docking
 )
+FetchContent_Declare(entt GIT_REPOSITORY https://github.com/skypjack/entt.git GIT_TAG v3.15.0)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(glfw spdlog glm imgui)
+FetchContent_MakeAvailable(glfw spdlog glm imgui  entt)
 
 add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -44,6 +47,8 @@ add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
+
+
 
 target_include_directories(imgui
     PUBLIC
@@ -59,7 +64,6 @@ target_link_libraries(imgui
 
 set_target_properties(imgui PROPERTIES FOLDER "Dependencies")
 
-find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
 
@@ -190,17 +194,21 @@ target_link_libraries(Engine
         glfw
         spdlog::spdlog
         glm::glm
+        EnTT::EnTT
         Vulkan::Vulkan
         Vulkan::shaderc_combined
+        imgui
 )
 
-target_compile_definitions(Engine
-    PRIVATE
-        GLFW_INCLUDE_NONE
-        VE_ENGINE_ASSET_DIR="${CMAKE_SOURCE_DIR}/Engine/assets"
-        VE_SHADER_SOURCE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/src"
-        VE_SHADER_CACHE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/cache/vulkan"
+set(VE_COMMON_DEFINITIONS
+    GLFW_INCLUDE_NONE
+    VE_ENGINE_ASSET_DIR="${CMAKE_SOURCE_DIR}/Engine/assets"
+    VE_SHADER_SOURCE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/src"
+    VE_SHADER_CACHE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/cache/vulkan"
 )
+
+target_compile_definitions(Engine PUBLIC ${VE_COMMON_DEFINITIONS})
+
 
 set_target_properties(Engine PROPERTIES FOLDER "VoxelEvaEngine")
 
@@ -219,6 +227,7 @@ if(VE_BUILD_EDITOR)
     ve_source_group("Editor" EDITOR_SOURCES)
     target_include_directories(Editor PRIVATE Editor/src)
     target_link_libraries(Editor PRIVATE Engine imgui)
+    target_compile_definitions(Editor PRIVATE ${VE_COMMON_DEFINITIONS})
     set_target_properties(Editor PROPERTIES FOLDER "VoxelEvaEngine")
 endif()
 

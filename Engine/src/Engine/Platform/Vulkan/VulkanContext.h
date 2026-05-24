@@ -17,6 +17,7 @@
 #include "VulkanCommandBuffers.h"
 #include "VulkanSyncObjects.h"
 #include "VulkanPipeline.h"
+#include "VulkanDebugMessenger.h"
 
 namespace Engine
 {
@@ -31,31 +32,29 @@ namespace Engine
         void Init() override;
         void Shutdown() override;
 
-        void SwapBuffers() override;
-        void OnFramebufferResized() override { m_framebufferResized = true; }
-        bool BeginFrame() override;
-        void EndFrame() override;
-        void DrawFrame() override;
+        static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, void* userData);
+
+
+        void TestValidationLayer();
+
 
         VkInstance GetInstance() const { return m_instance->GetInstance(); }
         VkSurfaceKHR GetSurface() const { return m_surface; }
 
         VulkanDevice& GetDevice() { return *m_device; }
-        VulkanSwapchain& GetSwapchain() { return *m_swapchain; }
         VkDevice GetDeviceHandle() const { return m_device->GetDevice(); }
-        VkRenderPass GetRenderPassHandle() const { return m_renderPass->GetRenderPass(); }
-        VkCommandBuffer GetCurrentCommandBuffer() const { return m_commandBuffers->GetCommandBuffer(m_currentImageIndex); }
         uint32_t GetCurrentImageIndex() const { return m_currentImageIndex; }
-        uint32_t GetImageCount() const { return static_cast<uint32_t>(m_swapchain->GetImages().size()); }
-        VkExtent2D GetSwapchainExtent() const { return m_swapchain->GetExtent(); }
         void SetFramebufferResized(bool resized) { m_framebufferResized = resized; }
         GLFWwindow* GetNativeWindow() const { return m_window; }
         VkInstance GetInstanceHandle() const { return m_instance->GetInstance(); }
         VkPhysicalDevice GetPhysicalDeviceHandle() const { return m_physicalDevice->GetHandle(); }
         VkQueue GetGraphicsQueue() const { return m_device->GetGraphicsQueue(); }
         uint32_t GetGraphicsQueueFamily() const { return m_device->GetGraphicsQueueFamily(); }
+        uint32_t GetPresentQueueFamily() const { return m_device->GetPresentQueueFamily(); }
+        VkSurfaceKHR GetSurfaceHandle() const { return m_surface; }
+        VkQueue GetPresentQueue() const { return m_device->GetPresentQueue(); }
+
     private:
-        void RecreateSwapchain();
         void CreateSurface();
 
     private:
@@ -66,17 +65,10 @@ namespace Engine
 
         std::unique_ptr<VulkanPhysicalDevice> m_physicalDevice;
         std::unique_ptr<VulkanDevice> m_device;
-        std::unique_ptr<VulkanSwapchain> m_swapchain;
 
-        std::unique_ptr<VulkanRenderPass> m_renderPass;
-        std::unique_ptr<VulkanFramebuffer> m_framebuffer;
 
-        std::unique_ptr<VulkanCommandPool> m_commandPool;
-        std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
 
-        std::unique_ptr<VulkanSyncObjects> m_syncObjects;
-
-        std::unique_ptr<VulkanPipeline> m_pipeline;
+        std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
 
         uint32_t m_currentFrame = 0;
         uint32_t m_currentImageIndex = 0;

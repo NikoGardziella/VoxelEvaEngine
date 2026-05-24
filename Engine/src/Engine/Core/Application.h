@@ -5,11 +5,15 @@
 
 #include <memory>
 
+#include "vulkan/vulkan.h"
+
 namespace Engine
 {
     class Window;
     class WindowCloseEvent;
     class WindowResizeEvent;
+    class VulkanRenderer;
+    class VulkanContext;
 
     class Application
     {
@@ -19,7 +23,8 @@ namespace Engine
 
         void Run();
         void OnEvent(Event& event);
-
+        virtual void BeginImGui() {}
+        virtual void EndImGui(VkCommandBuffer commandBuffer) { (void)commandBuffer; }
         void PushLayer(Layer* layer);
         void PushOverlay(Layer* overlay);
 
@@ -27,8 +32,12 @@ namespace Engine
 
         Window& GetWindow() { return *m_window; }
         const Window& GetWindow() const { return *m_window; }
+        VulkanContext* GetVulkanContext() const;
 
+        VulkanRenderer& GetRenderer() { return *m_renderer; }
+        const VulkanRenderer& GetRenderer() const { return *m_renderer; }
     private:
+
         bool OnWindowClose(WindowCloseEvent& event);
         bool OnWindowResize(WindowResizeEvent& event);
 
@@ -38,6 +47,8 @@ namespace Engine
 
         float m_lastFrameTime = 0.0f;
         LayerStack m_layerStack;
+        std::unique_ptr<VulkanRenderer> m_renderer;
+ 
 
         static Application* s_instance;
     };

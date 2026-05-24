@@ -31,6 +31,5 @@ namespace Engine
 
     private:
         VkInstance m_instance = VK_NULL_HANDLE;
-        std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
     };
 }

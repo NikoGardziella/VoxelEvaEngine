@@ -7,6 +7,7 @@
 
 #include <array>
 
+
 namespace Engine
 {
     namespace
@@ -113,6 +114,19 @@ namespace Engine
         glfwGetCursorPos(window, &x, &y);
 
         return { static_cast<float>(x), static_cast<float>(y) };
+    }
+
+    glm::vec2 Input::GetMouseGlmPosition()
+    {
+        GLFWwindow* window = GetGLFWWindow();
+
+        double x = 0.0;
+        double y = 0.0;
+        glfwGetCursorPos(window, &x, &y);
+
+        glm::vec2 glmMousePosition = glm::vec2{ static_cast<float>(x), static_cast<float>(y) };
+
+        return glmMousePosition;
     }
 
     float Input::GetMouseX()

@@ -54,7 +54,7 @@ namespace Engine
         );
         ENGINE_INFO("Created window: {} ({}x{})", m_Data.Title, m_Data.Width, m_Data.Height);
         ENGINE_INFO("GLFW window should close: {0}", glfwWindowShouldClose(m_window));
-        VE_CORE_ASSERT(m_window != nullptr, "Failed to create GLFW window");
+        EE_CORE_ASSERT(m_window != nullptr, "Failed to create GLFW window");
 
         if (!m_window)
             throw std::runtime_error("Failed to create GLFW window");
@@ -75,10 +75,7 @@ namespace Engine
                 data.Width = static_cast<unsigned int>(width);
                 data.Height = static_cast<unsigned int>(height);
 
-                if (data.Context)
-                {
-                    data.Context->OnFramebufferResized();
-                }
+               
 
                 WindowResizeEvent event(data.Width, data.Height);
                 data.EventCallback(event);
@@ -207,16 +204,7 @@ namespace Engine
     void WindowsWindow::OnUpdate()
     {
         glfwPollEvents();
-        if (m_context->BeginFrame())
-        {
-            m_context->DrawFrame();
-            m_context->EndFrame();
-            m_context->SwapBuffers();
-        }
-        else
-        {
-            ENGINE_WARN("begin fram failed");
-        }
+        
     }
 
     void WindowsWindow::SetVSync(bool enabled)
