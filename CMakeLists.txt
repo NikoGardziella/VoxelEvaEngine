@@ -126,10 +126,10 @@ file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
 )
 
 file(GLOB_RECURSE ENGINE_SHADER_SOURCE_FILES CONFIGURE_DEPENDS
-    Engine/assets/shaders/*.vert
-    Engine/assets/shaders/*.frag
-    Engine/assets/shaders/*.comp
-    Engine/assets/shaders/*.glsl
+    Engine/assets/shaders/src/*.vert
+    Engine/assets/shaders/src/*.frag
+    Engine/assets/shaders/src/*.comp
+    Engine/assets/shaders/src/*.glsl
 )
 
 set(ENGINE_SHADER_SPV_FILES)
@@ -175,7 +175,6 @@ file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS
 add_library(Engine STATIC
     ${ENGINE_SOURCES}
     ${ENGINE_SHADER_SOURCE_FILES}
-    ${ENGINE_SHADER_SPV_FILES}
 )
 
 add_dependencies(Engine CompileEngineShaders)
@@ -183,7 +182,7 @@ add_dependencies(Engine CompileEngineShaders)
 ve_set_common_settings(Engine)
 ve_source_group("Engine" ENGINE_SOURCES)
 
-source_group("Shaders" FILES ${ENGINE_SHADER_SOURCE_FILES} ${ENGINE_SHADER_SPV_FILES})
+source_group("Shaders" FILES ${ENGINE_SHADER_SOURCE_FILES})
 
 set_source_files_properties(${ENGINE_SHADER_SOURCE_FILES} ${ENGINE_SHADER_SPV_FILES} PROPERTIES
     VS_TOOL_OVERRIDE "None"
@@ -204,7 +203,7 @@ set(VE_COMMON_DEFINITIONS
     GLFW_INCLUDE_NONE
     VE_ENGINE_ASSET_DIR="${CMAKE_SOURCE_DIR}/Engine/assets"
     VE_SHADER_SOURCE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/src"
-    VE_SHADER_CACHE_DIR="${CMAKE_SOURCE_DIR}/Engine/assets/shaders/cache/vulkan"
+    VE_SHADER_CACHE_DIR="${CMAKE_BINARY_DIR}/ShaderCache/vulkan"
 )
 
 target_compile_definitions(Engine PUBLIC ${VE_COMMON_DEFINITIONS})
