@@ -2,6 +2,8 @@
 #include "Engine/Platform/Vulkan/VulkanPipeline.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "Camera/CameraPushConstants.h"
+#include <memory>
+#include <Engine/Assets/Asset.h>
 
 namespace Engine
 {
@@ -20,6 +22,9 @@ namespace Engine
     {
         m_meshBuffer = meshBuffer;
     }
+
+ 
+
     void GameRenderer::SetViewProjection(const glm::mat4& viewProjection)
     {
         m_viewProjection = viewProjection;
@@ -46,6 +51,33 @@ namespace Engine
         DrawMesh(commandBuffer);
 
         target.End(commandBuffer);
+    }
+
+    void GameRenderer::DrawPickingMesh(VkCommandBuffer commandBuffer, VulkanPipeline* pickingPipeline)
+    {
+        if (!pickingPipeline)
+            return;
+
+        if (!m_meshBuffer || !m_meshBuffer->IsValid())
+            return;
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pickingPipeline->GetPipeline());
+
+        glm::mat4 model = glm::mat4(1.0f);
+
+        Engine::CameraPushConstants pushConstants{};
+        pushConstants.MVP = m_viewProjection * model;
+
+        vkCmdPushConstants(
+            commandBuffer,
+            pickingPipeline->GetPipelineLayout(),
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(Engine::CameraPushConstants),
+            &pushConstants
+        );
+
+        m_meshBuffer->Draw(commandBuffer);
     }
 
     void GameRenderer::DrawMesh(VkCommandBuffer commandBuffer)

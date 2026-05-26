@@ -1,11 +1,14 @@
 #include "Scene.h"
-
+#include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Components/Core/IDComponent.h"
 #include "Engine/Scene/Components/Core/TagComponent.h"
 #include "Engine/Scene/Components/Core/TransformComponent.h"
 
 namespace Engine
 {
+   
+
+
     Entity Scene::CreateEntity(const std::string& name)
     {
         return CreateEntityWithID(GenerateEntityID(), name);

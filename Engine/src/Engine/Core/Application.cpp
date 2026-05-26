@@ -68,14 +68,17 @@ namespace Engine
 
             if (m_renderer->BeginFrame())
             {
-                m_renderer->RenderViewport();
-
-                m_renderer->BeginRenderPass();
-
                 for (Layer* layer : m_layerStack)
                 {
                     layer->OnUpdate(timestep);
                 }
+
+                for (Layer* layer : m_layerStack)
+                {
+                    layer->OnRender();
+                }
+
+                m_renderer->BeginRenderPass();
 
                 BeginImGui();
 

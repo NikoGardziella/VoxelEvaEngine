@@ -12,12 +12,20 @@
 #include "VulkanPipeline.h"
 #include <Engine/Renderer/GameRenderer.h>
 #include <Engine/Renderer/Vulkan/VulkanViewportRenderTarget.h>
-#include <imgui.h>
 #include <Engine/Renderer/Vulkan/VulkanMeshBuffer.h>
-#include <filesystem>
 #include <Engine/Assets/AssetManager.h>
-struct GLFWwindow;
+#include <Engine/Scene/Scene.h>
+#include <Engine/Renderer/SceneRenderer.h>
+#include <Engine/Renderer/ViewportPickResult.h>
+#include <Engine/Renderer/VoxelPickID.h>
 
+
+#include <filesystem>
+#include <imgui.h>
+#include <Engine/Renderer/Vulkan/VulkanPickingRenderTarget.h>
+#include <Engine/Assets/Assethandle.h>
+
+struct GLFWwindow;
 namespace Engine
 {
     class VulkanContext;
@@ -40,15 +48,16 @@ namespace Engine
         void EndFrame();
         void Present();
 
-        void BeginViewportRenderPass();
-        void RenderViewport();
-        void EndViewportRenderPass();
+        void RenderScene(Engine::Scene& scene);
 
         void RequestViewportResize(uint32_t width, uint32_t height);
         void ApplyPendingViewportResize();
 
         void OnFramebufferResized() { m_framebufferResized = true; }
 
+        void SetViewProjection(const glm::mat4& viewProjection);
+        uint32_t ReadPickingPixel(uint32_t x, uint32_t y);
+        Engine::ViewportPickResult ReadViewportPick(uint32_t x, uint32_t y);
 
         void LoadVoxelAsset(const std::filesystem::path& path);
         VkCommandBuffer GetCurrentCommandBuffer() const;
@@ -57,14 +66,22 @@ namespace Engine
         ImTextureID GetViewportTextureID() const;
         VkExtent2D GetSwapchainExtent() const { return m_swapchain->GetExtent(); }
         Engine::VulkanViewportRenderTarget& GetViewportRenderTarget() { return m_viewportRenderTarget; }
+        Engine::VulkanPickingRenderTarget& GetPickingRenderTarget() { return m_pickingRenderTarget; }
         Engine::GameRenderer& GetGameRenderer() { return m_gameRenderer; }
-
+        Engine::AssetManager& GetAssetManager() { return  m_assetManager;  }
+        void CreatePickingPipeline();
+        void BeginPickingRenderPass();
+        void RenderScenePicking(Engine::Scene& scene);
+        void EndPickingRenderPass();
     private:
         void CreateViewportPipeline();
 
         void CreateSwapchainResources();
         void DestroySwapchainResources();
         void RecreateSwapchain();
+
+
+     
 
     private:
         VulkanContext* m_context = nullptr;
@@ -79,6 +96,7 @@ namespace Engine
 
         std::unique_ptr<VulkanPipeline> m_pipeline;
         std::unique_ptr<VulkanPipeline> m_viewportPipeline;
+        std::unique_ptr<VulkanPipeline> m_pickingPipeline;
 
 
         Engine::GameRenderer m_gameRenderer;
@@ -97,5 +115,13 @@ namespace Engine
 
         Engine::AssetManager m_assetManager;
         Engine::VulkanMeshBuffer m_voxelMeshBuffer;
+
+        Engine::SceneRenderer m_sceneRenderer;
+
+
+        Engine::VulkanPickingRenderTarget m_pickingRenderTarget;
+
+
+
     };
 }

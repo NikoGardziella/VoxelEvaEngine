@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 #include "Vulkan/VulkanMeshBuffer.h"
+#include <Engine/Assets/Assethandle.h>
+#include <unordered_map>
 
 namespace Engine
 {
@@ -19,9 +21,13 @@ namespace Engine
         void Shutdown();
 
         void SetMeshBuffer(VulkanMeshBuffer* meshBuffer);
+        Engine::VulkanMeshBuffer* GetOrCreateVoxelMeshBuffer(Engine::AssetHandle handle);
         void SetViewProjection(const glm::mat4& viewProjection);
         void SetPipeline(VulkanPipeline* pipeline);
         void Render(VkCommandBuffer commandBuffer, RenderTarget& target);
+
+
+        void DrawPickingMesh(VkCommandBuffer commandBuffer, VulkanPipeline* pickingPipeline);
 
     private:
         void DrawMesh(VkCommandBuffer commandBuffer);
@@ -32,5 +38,8 @@ namespace Engine
 
         VulkanMeshBuffer* m_meshBuffer = nullptr;
         glm::mat4 m_viewProjection = glm::mat4(1.0f);
+
+
+
     };
 }

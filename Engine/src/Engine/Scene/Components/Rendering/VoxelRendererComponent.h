@@ -1,12 +1,16 @@
-#include <Engine/Assets/Assethandle.h>
+#pragma once
 
+#include "Engine/Assets/AssetHandle.h"
 
-namespace Engine {
-
+namespace Engine
+{
     struct VoxelRendererComponent
     {
         AssetHandle VoxelAsset = InvalidAssetHandle;
+
+        VoxelRendererComponent() = default;
+        VoxelRendererComponent(AssetHandle voxelAsset) : VoxelAsset(voxelAsset)
+        {
+        }
     };
-
 }
-

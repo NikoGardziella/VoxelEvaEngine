@@ -42,3 +42,4 @@ namespace Engine
         Scene* m_scene = nullptr;
     };
 }
+#include "Engine/Scene/Entity.inl"

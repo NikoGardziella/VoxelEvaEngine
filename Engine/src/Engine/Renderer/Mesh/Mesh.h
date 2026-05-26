@@ -10,6 +10,7 @@ namespace Engine
     {
         glm::vec3 Position;
         glm::vec3 Color;
+        uint32_t PickID = 0;
     };
 
     class Mesh

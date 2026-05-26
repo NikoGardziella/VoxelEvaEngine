@@ -1,13 +1,14 @@
 #pragma once
 
 #include "SceneTypes.h"
-#include "Entity.h"
 
 #include <entt/entt.hpp>
 #include <string>
 
 namespace Engine
 {
+
+    class Entity;
     class Scene
     {
     public:
@@ -35,6 +36,30 @@ namespace Engine
             return m_registry.view<Components...>();
         }
 
+        template<typename... Components, typename Func>
+        void ForEach(Func&& func)
+        {
+            auto view = m_registry.view<Components...>();
+
+            for (entt::entity entityHandle : view)
+            {
+                Entity entity(entityHandle, this);
+                func(entity, view.get<Components>(entityHandle)...);
+            }
+        }
+
+        template<typename... Components, typename Func>
+        void ForEach(Func&& func) const
+        {
+            auto view = m_registry.view<Components...>();
+
+            for (entt::entity entityHandle : view)
+            {
+                Entity entity(entityHandle, const_cast<Scene*>(this));
+                func(entity, view.get<Components>(entityHandle)...);
+            }
+        }
+
     private:
         EntityID GenerateEntityID();
 
@@ -46,4 +71,3 @@ namespace Engine
     };
 }
 
-#include "Entity.inl"

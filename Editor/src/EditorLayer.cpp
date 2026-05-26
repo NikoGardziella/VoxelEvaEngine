@@ -19,7 +19,8 @@
 #include <Engine/Core/Application.h>
 #include "Engine/Platform/Vulkan/VulkanRenderer.h"
 #include <Engine/Core/Editor/EditorConsole.h>
-
+#include "Engine/Core/Input.h"
+#include "Engine/Core/MouseCodes.h"
 
 
 namespace Editor {
@@ -28,14 +29,21 @@ namespace Editor {
 
     EditorLayer::EditorLayer(Engine::VulkanRenderer* renderer) : Engine::Layer("EditorLayer"), m_renderer(renderer)
     {
+        m_assetPlacementTool.SetContext(&m_editorScene, &m_renderer->GetAssetManager());
+
+
         m_assetBrowserPanel.SetAssetSelectedCallback([this](const std::filesystem::path& path)
             {
+                glm::vec3 spawnPosition = m_editorCamera.GetPosition() + m_editorCamera.GetForwardDirection() * 5.0f;
+
+                Engine::Entity entity = m_assetPlacementTool.CreateEntityFromAsset(path, spawnPosition);
+                m_selection.SelectedEntity = entity;
+
+               
+
                 if (m_renderer)
                 {
-                    if (path.extension() == ".vox" || path.extension() == ".voxel")
-                    {
-                        m_renderer->LoadVoxelAsset(path);
-                    }
+                    m_renderer->LoadVoxelAsset(path);
                 }
             });
 
@@ -47,8 +55,12 @@ namespace Editor {
 
     void EditorLayer::OnAttach()
     {
-
+        m_sceneHierarchyPanel.SetScene(&m_editorScene);
         
+
+        m_sceneHierarchyPanel.SetSelection(&m_selection);
+        m_inspectorPanel.SetSelection(&m_selection);
+
         APP_INFO("EditorLayer attached");
     }
 
@@ -62,26 +74,38 @@ namespace Editor {
         (void)ts;
         m_editorCamera.OnUpdate(ts, m_viewportHovered);
 
-        ImVec2 mouse = ImGui::GetMousePos();
+      
 
-        float localX = mouse.x - m_viewportBoundsMin.x;
-        float localY = mouse.y - m_viewportBoundsMin.y;
-
-        bool mouseInside =
-            localX >= 0.0f &&
-            localY >= 0.0f &&
-            localX < (m_viewportBoundsMax.x - m_viewportBoundsMin.x) &&
-            localY < (m_viewportBoundsMax.y - m_viewportBoundsMin.y);
 
 
         m_editorCamera.OnUpdate(ts, m_viewportPanel.IsHovered());
         m_renderer->GetGameRenderer().SetViewProjection(m_editorCamera.GetViewProjection());
 
+
+
+        if (m_sceneState == SceneState::Play)
+        {
+            Engine::SceneTickContext context{};
+            context.Tick = m_simulationTick++;
+            context.FixedDeltaTime = 1.0f / 60.0f;
+
+            m_runtimeScene->OnFixedUpdate(context);
+        }
+
+     
+       
        
     }
 
+
+
+
     void EditorLayer::OnImGuiRender()
     {
+        m_viewportHovered = GetViewportPanel().IsHovered();
+        m_viewportBoundsMin = GetViewportPanel().GetBoundsMin();
+        m_viewportBoundsMax = GetViewportPanel().GetBoundsMax();
+
         static bool dockspaceOpen = true;
 
         ImGuiWindowFlags windowFlags =
@@ -147,10 +171,9 @@ namespace Editor {
         m_viewportPanel.OnImGuiRender();
         m_consolePanel.OnImGuiRender();
         m_assetBrowserPanel.OnImGuiRender();
-
-
+        m_sceneHierarchyPanel.OnImGuiRender();
+        m_inspectorPanel.OnImGuiRender();
        // DrawViewportPanel();
-        DrawSceneHierarchyPanel();
         DrawInspectorPanel();
         //DrawConsolePanel();
         m_viewportPanel.OnImGuiRender();
@@ -163,22 +186,79 @@ namespace Editor {
             m_editorCamera.OnResize(static_cast<uint32_t>(viewportSize.x), static_cast<uint32_t>(viewportSize.y));
         }
 
+        if (m_viewportHovered && Engine::Input::IsMouseButtonPressed(Engine::Mouse::Button0))
+        {
+            ImVec2 mouse = ImGui::GetMousePos();
+
+            float viewportWidth = m_viewportBoundsMax.x - m_viewportBoundsMin.x;
+            float viewportHeight = m_viewportBoundsMax.y - m_viewportBoundsMin.y;
+
+            float localX = mouse.x - m_viewportBoundsMin.x;
+            float localY = mouse.y - m_viewportBoundsMin.y;
+
+            if (localX < 0.0f || localY < 0.0f || localX >= viewportWidth || localY >= viewportHeight)
+                return;
+
+            VkExtent2D pickExtent = m_renderer->GetPickingRenderTarget().GetExtent();
+
+            uint32_t pickX = static_cast<uint32_t>((localX / viewportWidth) * pickExtent.width);
+            uint32_t pickY = static_cast<uint32_t>((localY / viewportHeight) * pickExtent.height);
+
+            pickY = pickExtent.height - 1 - static_cast<uint32_t>((localY / viewportHeight) * pickExtent.height);
+            Engine::ViewportPickResult pick = m_renderer->ReadViewportPick(pickX, pickY);
+
+
+            if (pick.Hit)
+            {
+                ENGINE_INFO(
+                    "Picked voxel: chunk={}, local=({}, {}, {})",
+                    pick.ChunkIndex,
+                    pick.LocalVoxel.x,
+                    pick.LocalVoxel.y,
+                    pick.LocalVoxel.z
+                );
+            }
+        }
         
 
     }
 
-    
-
-    void EditorLayer::DrawSceneHierarchyPanel()
+    void EditorLayer::OnRender()
     {
-        ImGui::Begin("Scene Hierarchy");
 
-        ImGui::Selectable("Camera");
-        ImGui::Selectable("Triangle");
-        ImGui::Selectable("Light");
+        if (m_renderer)
+        {
+            m_renderer->SetViewProjection(m_editorCamera.GetViewProjection());
+            m_renderer->RenderScene(GetActiveScene());
 
-        ImGui::End();
+            
+            m_renderer->RenderScenePicking(m_editorScene);
+            
+        }
     }
+    
+    void EditorLayer::OnScenePlay()
+    {
+        m_sceneState = SceneState::Play;
+       // m_runtimeScene = m_editorScene.Copy();
+    }
+
+    void EditorLayer::OnSceneStop()
+    {
+        m_sceneState = SceneState::Edit;
+        m_runtimeScene.reset();
+    }
+
+    Engine::Scene& EditorLayer::GetActiveScene()
+    {
+        if (m_sceneState == SceneState::Edit)
+            return m_editorScene;
+
+        return *m_runtimeScene;
+    }
+
+
+  
 
     void EditorLayer::DrawInspectorPanel()
     {
@@ -197,6 +277,8 @@ namespace Editor {
 
         ImGui::End();
     }
+
+   
 
 
     void EditorLayer::OnEvent(Engine::Event& event)

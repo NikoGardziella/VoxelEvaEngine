@@ -25,11 +25,13 @@ namespace Engine
         const glm::mat4& GetView() const { return m_view; }
         const glm::mat4& GetViewProjection() const { return m_viewProjection; }
 
+        glm::vec3 GetForwardDirection() const;
+        const glm::vec3& GetFocalPoint() const { return m_focalPoint; }
+
     private:
         void RecalculateViewProjection();
         void ClampZoom();
 
-        glm::vec3 GetForwardDirection() const;
         glm::vec3 GetRightDirection() const;
         glm::vec3 GetUpDirection() const;
         glm::vec3 CalculatePosition() const;

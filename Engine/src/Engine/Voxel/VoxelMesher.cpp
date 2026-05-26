@@ -55,6 +55,20 @@ namespace Engine
         };
     }
 
+    static uint32_t GetLocalVoxelIndex(int x, int y, int z)
+    {
+        return static_cast<uint32_t>(
+            x +
+            y * Engine::VoxelChunk::SizeX +
+            z * Engine::VoxelChunk::SizeX * Engine::VoxelChunk::SizeY
+            );
+    }
+
+    static uint32_t EncodeVoxelPickID(uint32_t chunkIndex, uint32_t localVoxelIndex)
+    {
+        return ((chunkIndex << 12) | localVoxelIndex) + 1;
+    }
+
     Mesh VoxelMesher::BuildMesh(const VoxelChunk& chunk)
     {
         std::vector<MeshVertex> vertices;
@@ -93,8 +107,10 @@ namespace Engine
                             color *= 0.65f;
 
                         color = glm::clamp(color, glm::vec3(0.0f), glm::vec3(1.0f));
+                        uint32_t localIndex = GetLocalVoxelIndex(x, y, z);
+                        uint32_t pickID = EncodeVoxelPickID(0, localIndex);
 
-                        AddFace(vertices, indices, voxelPosition, face, color);
+                        AddFace(vertices, indices, voxelPosition, face, color, pickID);
                     }
                 }
             }
@@ -103,14 +119,14 @@ namespace Engine
         return Mesh(vertices, indices);
     }
 
-    void VoxelMesher::AddFace(std::vector<MeshVertex>& vertices, std::vector<uint32_t>& indices, const glm::vec3& voxelPosition, int faceIndex, const glm::vec3& color)
+    void VoxelMesher::AddFace(std::vector<MeshVertex>& vertices, std::vector<uint32_t>& indices, const glm::vec3& voxelPosition, int faceIndex, const glm::vec3& color, const uint32_t pickID)
     {
         uint32_t startIndex = static_cast<uint32_t>(vertices.size());
 
-        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][0], color });
-        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][1], color });
-        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][2], color });
-        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][3], color });
+        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][0], color, pickID });
+        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][1], color, pickID });
+        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][2], color, pickID });
+        vertices.push_back({ voxelPosition + FaceVertices[faceIndex][3], color, pickID });
 
         indices.push_back(startIndex + 0);
         indices.push_back(startIndex + 1);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Scene/Scene.h"
 
 namespace Engine
 {

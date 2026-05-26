@@ -15,6 +15,14 @@
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Voxel/VoxelAsset.h>
 
+#include "Engine/Scene/Scene.h"
+#include <Engine/Scene/Components/Core/TransformComponent.h>
+#include <Engine/Scene/Components/Rendering/VoxelRendererComponent.h>
+
+#include "Engine/Scene/Entity.h"
+#include "VulkanUtils/VoxelPickingUtils.h"
+#include "VulkanUtils/VulkanUtils.h"
+
 namespace Engine
 {
     static const char* VkResultToString(VkResult result)
@@ -84,6 +92,17 @@ namespace Engine
         }
         m_gameRenderer.SetMeshBuffer(&m_cubeMeshBuffer);
         */
+
+
+        m_sceneRenderer.Init(m_context->GetDeviceHandle(), m_context->GetPhysicalDeviceHandle(), m_commandPool->GetCommandPool(), m_context->GetGraphicsQueue());
+        //m_sceneRenderer.SetPipeline(m_viewportPipeline.get());
+
+        VkFormat pickingFormat = VK_FORMAT_R32_UINT;
+        m_pickingRenderTarget.Init(m_context->GetDeviceHandle(), m_context->GetPhysicalDeviceHandle(), pickingFormat, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+
+       
+
+        CreatePickingPipeline();
     }
 
     void VulkanRenderer::CreateViewportPipeline()
@@ -97,6 +116,155 @@ namespace Engine
         m_viewportPipeline = std::make_unique<VulkanPipeline>(m_context->GetDeviceHandle(), viewportSpec);
 
         m_gameRenderer.SetPipeline(m_viewportPipeline.get());
+        m_sceneRenderer.SetPipeline(m_viewportPipeline.get());
+    }
+
+
+    void VulkanRenderer::CreatePickingPipeline()
+    {
+        VulkanPipelineSpecification spec{};
+        spec.Name = "VoxelPicking";
+        spec.ShaderPath = (std::filesystem::path(VE_SHADER_SOURCE_DIR) / "VoxelPicking.glsl").string();
+        spec.RenderPass = m_pickingRenderTarget.GetRenderPass();
+        spec.Extent = m_pickingRenderTarget.GetExtent();
+
+        m_pickingPipeline = std::make_unique<VulkanPipeline>(
+            m_context->GetDeviceHandle(),
+            spec
+        );
+        m_sceneRenderer.SetPickingPipeline(m_pickingPipeline.get());
+
+    }
+
+    void VulkanRenderer::SetViewProjection(const glm::mat4& viewProjection)
+    {
+        m_gameRenderer.SetViewProjection(viewProjection);
+        m_sceneRenderer.SetViewProjection(viewProjection);
+    }
+
+    uint32_t VulkanRenderer::ReadPickingPixel(uint32_t x, uint32_t y)
+    {
+        VkDevice device = m_context->GetDeviceHandle();
+        VkPhysicalDevice physicalDevice = m_context->GetPhysicalDeviceHandle();
+        VkQueue graphicsQueue = m_context->GetGraphicsQueue();
+
+        VkExtent2D extent = m_pickingRenderTarget.GetExtent();
+
+        if (x >= extent.width || y >= extent.height)
+            return 0;
+
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(uint32_t);
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer) != VK_SUCCESS)
+            return 0;
+
+        VkMemoryRequirements memoryRequirements{};
+        vkGetBufferMemoryRequirements(device, stagingBuffer, &memoryRequirements);
+
+        VkMemoryAllocateInfo allocateInfo{};
+        allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocateInfo.allocationSize = memoryRequirements.size;
+        allocateInfo.memoryTypeIndex = Engine::VulkanUtils::FindMemoryType(
+            physicalDevice,
+            memoryRequirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+        );
+
+        if (vkAllocateMemory(device, &allocateInfo, nullptr, &stagingMemory) != VK_SUCCESS)
+        {
+            vkDestroyBuffer(device, stagingBuffer, nullptr);
+            return 0;
+        }
+
+        vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
+
+        VkCommandBuffer commandBuffer = Engine::VulkanUtils::BeginSingleTimeCommands(
+            device,
+            m_commandPool->GetCommandPool()
+        );
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageOffset = { static_cast<int32_t>(x), static_cast<int32_t>(y), 0 };
+        copyRegion.imageExtent = { 1, 1, 1 };
+
+        vkCmdCopyImageToBuffer(
+            commandBuffer,
+            m_pickingRenderTarget.GetImage(),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            stagingBuffer,
+            1,
+            &copyRegion
+        );
+
+        Engine::VulkanUtils::EndSingleTimeCommands(
+            device,
+            graphicsQueue,
+            m_commandPool->GetCommandPool(),
+            commandBuffer
+        );
+
+        uint32_t pickedID = 0;
+
+        void* data = nullptr;
+        vkMapMemory(device, stagingMemory, 0, sizeof(uint32_t), 0, &data);
+        std::memcpy(&pickedID, data, sizeof(uint32_t));
+        vkUnmapMemory(device, stagingMemory);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingMemory, nullptr);
+
+        return pickedID;
+    }
+
+    Engine::ViewportPickResult VulkanRenderer::ReadViewportPick(uint32_t x, uint32_t y)
+    {
+        Engine::ViewportPickResult result{};
+
+        VkExtent2D extent = m_pickingRenderTarget.GetExtent();
+
+        if (x >= extent.width || y >= extent.height)
+            return result;
+
+        uint32_t encodedID = ReadPickingPixel(x, y);
+
+        result.RawID = encodedID;
+
+        if (encodedID == 0)
+            return result;
+
+        uint32_t chunkIndex = 0;
+        glm::ivec3 localVoxel{};
+
+        if (!VoxelPickingUtils::DecodeVoxelPickID(encodedID, chunkIndex, localVoxel))
+            return result;
+
+        result.Hit = true;
+        result.ChunkIndex = chunkIndex;
+        result.LocalVoxel = localVoxel;
+        result.LocalVoxelIndex =
+            static_cast<uint32_t>(
+                localVoxel.x +
+                localVoxel.y * Engine::VoxelChunk::SizeX +
+                localVoxel.z * Engine::VoxelChunk::SizeX * Engine::VoxelChunk::SizeY
+                );
+
+        result.WorldVoxel = localVoxel; // for now, until you add chunk/world origin
+
+        return result;
     }
 
     void VulkanRenderer::Shutdown()
@@ -199,6 +367,26 @@ namespace Engine
 
    
 
+    void VulkanRenderer::RenderScenePicking(Engine::Scene& scene)
+    {
+        VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
+
+        m_sceneRenderer.RenderScenePicking(
+            commandBuffer,
+            m_pickingRenderTarget,
+            scene,
+            m_assetManager
+        );
+    
+    }
+
+    void VulkanRenderer::EndPickingRenderPass()
+    {
+        VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
+
+        vkCmdEndRenderPass(commandBuffer);
+    }
+
     void VulkanRenderer::EndRenderPass()
     {
         vkCmdEndRenderPass(GetCurrentCommandBuffer());
@@ -270,42 +458,18 @@ namespace Engine
         m_frameStarted = false;
     }
 
-    void VulkanRenderer::BeginViewportRenderPass()
+
+
+    void VulkanRenderer::RenderScene(Engine::Scene& scene)
     {
         VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
-
-        VkClearValue clearColor{};
-        clearColor.color = { { 0.02f, 0.08f, 0.92f, 1.0f } };
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_viewportRenderTarget.GetRenderPass();
-        renderPassInfo.framebuffer = m_viewportRenderTarget.GetFramebuffer();
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = m_viewportRenderTarget.GetExtent();
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
-
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
-    void VulkanRenderer::RenderViewport()
-    {
-
-
-        VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
-
-        m_gameRenderer.Render(commandBuffer, m_viewportRenderTarget);
-
-
-        
+        m_sceneRenderer.RenderScene(commandBuffer, m_viewportRenderTarget, scene, m_assetManager);
     }
 
 
-    void VulkanRenderer::EndViewportRenderPass()
-    {
-        vkCmdEndRenderPass(GetCurrentCommandBuffer());
-    }
+
+
+  
 
 
     void VulkanRenderer::RequestViewportResize(uint32_t width, uint32_t height)
@@ -459,4 +623,7 @@ namespace Engine
 
         ENGINE_INFO("Vulkan swapchain recreated");
     }
+
+
+    
 }

@@ -4,6 +4,10 @@
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <system_error>
+#include <vector>
+
 namespace Editor
 {
     AssetBrowserPanel::AssetBrowserPanel()
@@ -18,8 +22,8 @@ namespace Editor
 
     void AssetBrowserPanel::SetAssetRoot(const std::filesystem::path& assetRoot)
     {
-        m_assetRoot = assetRoot;
-        m_currentDirectory = assetRoot;
+        m_assetRoot = std::filesystem::path(assetRoot).lexically_normal();
+        m_currentDirectory = m_assetRoot;
     }
 
     void AssetBrowserPanel::SetAssetSelectedCallback(AssetSelectedCallback callback)
@@ -58,18 +62,44 @@ namespace Editor
 
     void AssetBrowserPanel::DrawDirectory(const std::filesystem::path& directory)
     {
-        for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory))
+        std::error_code errorCode;
+        std::vector<std::filesystem::directory_entry> entries;
+
+        for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory, errorCode))
         {
-            const std::filesystem::path& path = entry.path();
-            std::string name = path.filename().string();
+            entries.push_back(entry);
+        }
+
+        if (errorCode)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Failed to read directory");
+            ENGINE_ERROR("Failed to read asset directory '{}': {}", directory.string(), errorCode.message());
+            return;
+        }
+
+        std::sort(entries.begin(), entries.end(), [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
+            {
+                if (a.is_directory() != b.is_directory())
+                    return a.is_directory() > b.is_directory();
+
+                return a.path().filename().string() < b.path().filename().string();
+            });
+
+        for (const std::filesystem::directory_entry& entry : entries)
+        {
+            const std::filesystem::path path = entry.path();
+            const std::string name = path.filename().string();
 
             if (entry.is_directory())
             {
                 std::string label = "[Folder] " + name;
 
-                if (ImGui::Selectable(label.c_str(), false))
+                if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick))
                 {
-                    m_currentDirectory = path;
+                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                    {
+                        m_currentDirectory = path;
+                    }
                 }
 
                 continue;
@@ -78,6 +108,11 @@ namespace Editor
             bool supported = IsSupportedAsset(path);
             std::string label = supported ? "[Asset] " + name : "[File] " + name;
 
+            if (!supported)
+            {
+                ImGui::BeginDisabled();
+            }
+
             if (ImGui::Selectable(label.c_str(), false))
             {
                 if (supported && m_assetSelectedCallback)
@@ -85,6 +120,11 @@ namespace Editor
                     ENGINE_INFO("Asset selected: {}", path.string());
                     m_assetSelectedCallback(path);
                 }
+            }
+
+            if (!supported)
+            {
+                ImGui::EndDisabled();
             }
         }
     }
