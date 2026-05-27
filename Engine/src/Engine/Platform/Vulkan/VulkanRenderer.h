@@ -70,7 +70,6 @@ namespace Engine
         Engine::GameRenderer& GetGameRenderer() { return m_gameRenderer; }
         Engine::AssetManager& GetAssetManager() { return  m_assetManager;  }
         void CreatePickingPipeline();
-        void BeginPickingRenderPass();
         void RenderScenePicking(Engine::Scene& scene);
         void EndPickingRenderPass();
     private:

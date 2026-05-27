@@ -36,6 +36,9 @@ namespace Engine
 
         VulkanRenderer& GetRenderer() { return *m_renderer; }
         const VulkanRenderer& GetRenderer() const { return *m_renderer; }
+
+        void CloseApplication() { m_running = false; }
+
     private:
 
         bool OnWindowClose(WindowCloseEvent& event);

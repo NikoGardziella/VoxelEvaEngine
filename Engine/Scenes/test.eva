@@ -1,0 +1,11 @@
+Scene: Untitled
+Entities:
+  - Entity: 1
+    TagComponent:
+      Tag: Zeds-0-Zed_1
+    TransformComponent:
+      Translation: [0, 18.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VoxelRendererComponent:
+      VoxelAsset: 1294789162609625693

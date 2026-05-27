@@ -237,17 +237,12 @@ namespace Engine
     void VulkanPickingRenderTarget::DestroyResources()
     {
         
+       
 
         if (m_framebuffer != VK_NULL_HANDLE)
         {
             vkDestroyFramebuffer(m_device, m_framebuffer, nullptr);
             m_framebuffer = VK_NULL_HANDLE;
-        }
-
-        if (m_renderPass != VK_NULL_HANDLE)
-        {
-            vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-            m_renderPass = VK_NULL_HANDLE;
         }
 
         if (m_colorImageView != VK_NULL_HANDLE)
@@ -266,6 +261,12 @@ namespace Engine
         {
             vkFreeMemory(m_device, m_colorImageMemory, nullptr);
             m_colorImageMemory = VK_NULL_HANDLE;
+        }
+
+        if (m_renderPass != VK_NULL_HANDLE)
+        {
+            vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+            m_renderPass = VK_NULL_HANDLE;
         }
     }
 }

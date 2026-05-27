@@ -27,6 +27,9 @@ namespace Engine
         template<typename T>
         void RemoveComponent();
 
+        template<typename T, typename... Args>
+        T& AddOrReplaceComponent(Args&&... args);
+
         bool IsValid() const;
         entt::entity GetHandle() const { return m_handle; }
 

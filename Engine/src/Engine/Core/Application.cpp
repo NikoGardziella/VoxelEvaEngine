@@ -8,6 +8,7 @@
 #include "Engine/Core/Input.h"
 #include "Engine/Platform/Vulkan/VulkanContext.h"
 #include "Engine/Platform/Vulkan/VulkanRenderer.h"
+#include "Instrumentor.h"
 
 namespace Engine
 {
@@ -57,6 +58,7 @@ namespace Engine
 
         while (m_running && !m_window->ShouldClose())
         {
+            EE_PROFILE_FUNCTION();
             float time = static_cast<float>(glfwGetTime());
             Timestep timestep = time - m_lastFrameTime;
             m_lastFrameTime = time;

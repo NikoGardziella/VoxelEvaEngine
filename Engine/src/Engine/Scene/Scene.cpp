@@ -3,6 +3,9 @@
 #include "Engine/Scene/Components/Core/IDComponent.h"
 #include "Engine/Scene/Components/Core/TagComponent.h"
 #include "Engine/Scene/Components/Core/TransformComponent.h"
+#include "Components/Rendering/VoxelRendererComponent.h"
+
+
 
 namespace Engine
 {
@@ -60,6 +63,52 @@ namespace Engine
     void Scene::OnFixedUpdate(const SceneTickContext& context)
     {
         (void)context;
+    }
+
+    void Scene::OnRuntimeStart()
+    {
+    }
+
+    void Scene::OnRuntimeStop()
+    {
+    }
+
+    void Scene::OnRuntimeUpdate(Timestep ts)
+    {
+    }
+
+    void Scene::OnEditorUpdate(Timestep ts)
+    {
+    }
+
+    void Scene::Clear()
+    {
+        m_registry.clear();
+        m_nextEntityID = 1;
+    }
+
+    std::unique_ptr<Scene> Scene::Copy() const
+    {
+        std::unique_ptr<Scene> newScene = std::make_unique<Scene>();
+
+        this->ForEachEntity([&](Entity sourceEntity)
+            {
+                auto& tag = sourceEntity.GetComponent<TagComponent>();
+                auto& entityID = sourceEntity.GetComponent<IDComponent>();
+
+                Entity newEntity = newScene->CreateEntityWithID(entityID.ID, tag.Tag);
+
+                if (sourceEntity.HasComponent<TransformComponent>())
+                    newEntity.AddOrReplaceComponent<TransformComponent>(sourceEntity.GetComponent<TransformComponent>());
+
+                if (sourceEntity.HasComponent<VoxelRendererComponent>())
+                    newEntity.AddOrReplaceComponent<VoxelRendererComponent>(sourceEntity.GetComponent<VoxelRendererComponent>());
+            }
+        );
+
+        newScene->m_nextEntityID = m_nextEntityID;
+
+        return newScene;
     }
 
     EntityID Scene::GenerateEntityID()

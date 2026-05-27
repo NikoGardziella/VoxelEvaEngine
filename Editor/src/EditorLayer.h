@@ -14,6 +14,7 @@
 #include <Editor/Panels/SceneHierarchyPanel.h>
 #include <Editor/Panels/InspectorPanel.h>
 #include "Editor/EditorSelection.h"
+#include <memory>
 
 
 
@@ -41,7 +42,12 @@ namespace Editor {
         void OnSceneStop();
         Engine::Scene& GetActiveScene();
         void DrawSceneHierarchyPanel();
+        void DrawToolbar();
         void DrawInspectorPanel();
+        void DrawMenuBar();
+        void SaveSceneAs();
+        void SaveScene();
+        void OpenScene();
         void OnEvent(Engine::Event& event) override;
 
         Editor::ViewportPanel& GetViewportPanel() { return m_viewportPanel; }
@@ -71,10 +77,10 @@ namespace Editor {
         glm::vec2 m_viewportBoundsMax{};
         bool m_viewportFocused = false;
         bool m_viewportHovered = false;
-
+     
 
         EditorSelection m_selection;
-
+        std::filesystem::path m_scenePath;
     };
 
 

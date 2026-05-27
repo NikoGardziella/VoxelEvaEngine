@@ -21,6 +21,8 @@
 #include <Engine/Core/Editor/EditorConsole.h>
 #include "Engine/Core/Input.h"
 #include "Engine/Core/MouseCodes.h"
+#include <Engine/Scene/SceneSerializer/SceneSerializer.h>
+#include <Engine/Platform/Windows/FileDialogs.h>
 
 
 namespace Editor {
@@ -93,7 +95,10 @@ namespace Editor {
         }
 
      
-       
+        if (m_sceneState == SceneState::Play)
+        {
+            m_runtimeScene->OnRuntimeUpdate(ts);
+        }
        
     }
 
@@ -140,20 +145,8 @@ namespace Editor {
             ImGuiDockNodeFlags_None
         );
 
-        if (ImGui::BeginMenuBar())
-        {
-            if (ImGui::BeginMenu("File"))
-            {
-                ImGui::MenuItem("New Scene");
-                ImGui::MenuItem("Open Scene");
-                ImGui::MenuItem("Save Scene");
-                ImGui::Separator();
-                ImGui::MenuItem("Exit");
-                ImGui::EndMenu();
-            }
+        
 
-            ImGui::EndMenuBar();
-        }
 
         ImGui::End();
 
@@ -219,8 +212,8 @@ namespace Editor {
                 );
             }
         }
-        
-
+        DrawToolbar();
+        DrawMenuBar();
     }
 
     void EditorLayer::OnRender()
@@ -240,13 +233,19 @@ namespace Editor {
     void EditorLayer::OnScenePlay()
     {
         m_sceneState = SceneState::Play;
-       // m_runtimeScene = m_editorScene.Copy();
+        m_runtimeScene = m_editorScene.Copy();
+        m_runtimeScene = m_editorScene.Copy();
+        m_runtimeScene->OnRuntimeStart();
+        m_sceneState = SceneState::Play;
     }
 
     void EditorLayer::OnSceneStop()
     {
-        m_sceneState = SceneState::Edit;
+        if(m_runtimeScene)
+            m_runtimeScene->OnRuntimeStop();
+
         m_runtimeScene.reset();
+        m_sceneState = SceneState::Edit;
     }
 
     Engine::Scene& EditorLayer::GetActiveScene()
@@ -257,8 +256,36 @@ namespace Editor {
         return *m_runtimeScene;
     }
 
+    void EditorLayer::DrawToolbar()
+    {
+        ImGui::Begin("Toolbar");
 
-  
+        if (m_sceneState == SceneState::Edit)
+        {
+            if (ImGui::Button("Play"))
+                OnScenePlay();
+        }
+        else
+        {
+            if (ImGui::Button("Stop"))
+                OnSceneStop();
+
+            ImGui::SameLine();
+
+            if (m_sceneState == SceneState::Play)
+            {
+                if (ImGui::Button("Pause"))
+                    m_sceneState = SceneState::Pause;
+            }
+            else if (m_sceneState == SceneState::Pause)
+            {
+                if (ImGui::Button("Resume"))
+                    m_sceneState = SceneState::Play;
+            }
+        }
+
+        ImGui::End();
+    }
 
     void EditorLayer::DrawInspectorPanel()
     {
@@ -278,8 +305,149 @@ namespace Editor {
         ImGui::End();
     }
 
-   
+    void EditorLayer::DrawMenuBar()
+    {
+        if (!ImGui::BeginMainMenuBar())
+            return;
 
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+            {
+            }
+
+            if (ImGui::MenuItem("Open Scene...", "Ctrl+O"))
+            {
+                OpenScene();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+            {
+                SaveScene();
+            }
+
+            if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+            {
+                SaveSceneAs();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit"))
+            {
+                Engine::Application::Get().CloseApplication();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Edit"))
+        {
+            ImGui::MenuItem("Undo", "Ctrl+Z", false, false);
+            ImGui::MenuItem("Redo", "Ctrl+Y", false, false);
+
+            ImGui::Separator();
+
+            ImGui::MenuItem("Duplicate", "Ctrl+D", false, false);
+            ImGui::MenuItem("Delete", "Delete", false, false);
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View"))
+        {
+            ImGui::MenuItem("Scene Hierarchy", nullptr, true);
+            ImGui::MenuItem("Inspector", nullptr, true);
+            ImGui::MenuItem("Content Browser", nullptr, true);
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Tools"))
+        {
+            ImGui::MenuItem("Reload Shaders");
+            ImGui::MenuItem("Asset Registry");
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Help"))
+        {
+            ImGui::MenuItem("About");
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
+
+    void EditorLayer::SaveSceneAs()
+    {
+        std::string path = Engine::FileDialogs::SaveFile(
+            "Eva Scene (*.eva)\0*.eva\0"
+        );
+
+        if (path.empty())
+            return;
+
+        if (!std::filesystem::path(path).has_extension())
+            path += ".eva";
+
+        m_scenePath = path;
+
+        Engine::SceneSerializer serializer(&m_editorScene);
+
+        if (!serializer.Serialize(m_scenePath))
+        {
+            APP_ERROR("Failed to save scene {}", m_scenePath.string());
+            return;
+        }
+
+        APP_INFO("Saved scene {}", m_scenePath.string());
+    }
+
+    void EditorLayer::SaveScene()
+    {
+        if (m_scenePath.empty())
+        {
+            SaveSceneAs();
+            return;
+        }
+
+        Engine::SceneSerializer serializer(&m_editorScene);
+        serializer.Serialize(m_scenePath);
+    }
+
+
+
+
+
+
+    void EditorLayer::OpenScene()
+    {
+        std::string path = Engine::FileDialogs::OpenFile(
+            "Eva Scene (*.eva)\0*.eva\0"
+        );
+
+        if (path.empty())
+            return;
+
+        m_scenePath = path;
+
+        m_editorScene.Clear();
+
+        Engine::SceneSerializer serializer(&m_editorScene);
+
+        if (!serializer.Deserialize(m_scenePath))
+        {
+            APP_ERROR("Failed to load scene {}", m_scenePath.string());
+            return;
+        }
+
+        APP_INFO("Loaded scene {}", m_scenePath.string());
+    }
 
     void EditorLayer::OnEvent(Engine::Event& event)
     {

@@ -276,7 +276,7 @@ namespace Engine
 
         m_viewportPipeline.reset();
         m_viewportRenderTarget.Shutdown();
-
+        m_pickingRenderTarget.Shutdown();
         m_syncObjects.reset();
         DestroySwapchainResources();
         m_commandPool.reset();
@@ -331,18 +331,9 @@ namespace Engine
             throw std::runtime_error("Failed to begin Vulkan command buffer");
         }
 
-
-
         m_frameStarted = true;
 
-
-
-
-
         return true;
-
-
-
 
     }
 
@@ -371,12 +362,7 @@ namespace Engine
     {
         VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
 
-        m_sceneRenderer.RenderScenePicking(
-            commandBuffer,
-            m_pickingRenderTarget,
-            scene,
-            m_assetManager
-        );
+        m_sceneRenderer.RenderScenePicking(commandBuffer, m_pickingRenderTarget,  scene, m_assetManager);
     
     }
 
@@ -459,17 +445,12 @@ namespace Engine
     }
 
 
-
     void VulkanRenderer::RenderScene(Engine::Scene& scene)
     {
         VkCommandBuffer commandBuffer = GetCurrentCommandBuffer();
         m_sceneRenderer.RenderScene(commandBuffer, m_viewportRenderTarget, scene, m_assetManager);
     }
 
-
-
-
-  
 
 
     void VulkanRenderer::RequestViewportResize(uint32_t width, uint32_t height)

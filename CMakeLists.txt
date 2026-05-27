@@ -30,6 +30,9 @@ FetchContent_Declare(
     GIT_TAG docking
 )
 FetchContent_Declare(entt GIT_REPOSITORY https://github.com/skypjack/entt.git GIT_TAG v3.15.0)
+FetchContent_Declare(yaml-cpp GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git GIT_TAG 0.8.0)
+
+FetchContent_MakeAvailable(glfw spdlog glm imgui entt yaml-cpp)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -194,6 +197,7 @@ target_link_libraries(Engine
         spdlog::spdlog
         glm::glm
         EnTT::EnTT
+        yaml-cpp::yaml-cpp
         Vulkan::Vulkan
         Vulkan::shaderc_combined
         imgui

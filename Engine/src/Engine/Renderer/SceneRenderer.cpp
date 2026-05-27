@@ -71,7 +71,7 @@ namespace Engine
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetPipeline());
 
-        scene.ForEach<TransformComponent, VoxelRendererComponent>(
+        scene.ForEachWith<TransformComponent, VoxelRendererComponent>(
             [&](Engine::Entity entity, const TransformComponent& transform, const VoxelRendererComponent& voxelRenderer)
             {
                 if (voxelRenderer.VoxelAsset == InvalidAssetHandle)
@@ -104,7 +104,7 @@ namespace Engine
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pickingPipeline->GetPipeline());
 
-        scene.ForEach<TransformComponent, VoxelRendererComponent>(
+        scene.ForEachWith<TransformComponent, VoxelRendererComponent>(
             [&](Engine::Entity entity, const TransformComponent& transform, const VoxelRendererComponent& voxelRenderer)
             {
                 if (voxelRenderer.VoxelAsset == InvalidAssetHandle)
